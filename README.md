@@ -39,9 +39,9 @@ Light pipes are short sections of transparent 3D printer filament.
 
 **Build Guide**
 
-Solder the .1u caps, resistors and the diode. Solder the 16 SK6812 RGB leds making sure the rientation is correct and that the LEDs face the top side of the PCB. Solder the TRS MIDI out jack.
+Solder the .1u caps, resistors and the diode. Solder the 16 SK6812 RGB leds making sure the orientation is correct and that the LEDs face the top side of the PCB. Solder the TRS MIDI out jack.
 
-Clip the support lugs off all the encoders - there was not enough room in the layout to accomodate them and they have really good mechanical support from the enclosure top anyway. You MUST solder S2 and S6 BEFORE mounting the Pico board. Soldering S2, S6 and then the Pico makes soldering the Pico somewhat easier than soldering all the encoders first.
+Clip the support lugs off all the encoders - there was not enough room in the layout to accomodate them. The encoders have good mechanical support from the enclosure top anyway. The encoders mount from the TOP side of the board and are soldered on the bottom side. You **MUST** solder S2, S6, D2 and D6 **BEFORE** mounting the Pico board. Soldering S2, S6 and then the Pico makes soldering the Pico somewhat easier than soldering all the encoders first.
 
 After all the encoders are soldered, mount the OLED display - temporarily mount the enclosure top as a guide to get the spacing from the display to the top correct.
 
