@@ -13,13 +13,25 @@ Four pages of parameters, encoder ranges, switch function and colors fully custo
 ![](https://github.com/rheslip/Twisty-2-MIDIController/blob/main/images/IMG_0611.JPG)
 
 
+Hardest part of the build is soldering the three TSSOP 74HC4067 analog MUXes. If encoders aren't working, check your soldering carefully! Rest of the build is straightforward.
+
+
 ![](https://github.com/rheslip/Twisty-2-MIDIController/blob/main/images/IMG_0612.JPG)
+
+
+Pico can be mounted with header strips. I used headers in the corners and short wires to connect the PCB to the prototype which makes the Pico board a lot easier to remove if needed.
 
 
 ![](https://github.com/rheslip/Twisty-2-MIDIController/blob/main/images/IMG_0613.JPG)
 
 
+Side view of OLED mounting
+
+
 ![](https://github.com/rheslip/Twisty-2-MIDIController/blob/main/images/IMG_0614.JPG)
+
+
+Light pipes are short sections of transparent 3D printer filament.
 
 
 ![](https://github.com/rheslip/Twisty-2-MIDIController/blob/main/images/IMG_0615.JPG)
