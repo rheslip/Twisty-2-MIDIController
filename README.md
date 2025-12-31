@@ -1,8 +1,8 @@
 # Twisty 2 MIDIController
-2nd Gen Twisty MIDI controller using Raspberry Pi Pico or Pico 2
+2nd Generation of my Twisty MIDI controller using Raspberry Pi Pico or Pico 2.
 
-16 parameter encoders with switches and RGB LEDs, 2 menu encoders, OLED display, USB and TRS MIDI Out.
-Four pages of parameters, encoder ranges, switch function and colors fully customizable. Save and recall up to 16 controller setups.
+16 parameter encoders with switches and RGB LEDs, 2 menu encoders, OLED display, USB MIDI, TRS MIDI Out, Bluetooth MIDI with Pico W.
+Four pages of parameters, encoder ranges, switch function and colors fully customizable. Save and recall up to 16 controller setups. STL files for 3D printed case.
 
 ![](https://github.com/rheslip/Twisty-2-MIDIController/blob/main/images/IMG_0609.JPG)
 
