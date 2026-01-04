@@ -44,7 +44,7 @@ Side view of OLED mounting
 
 **Enclosure**
 
-The prototype enclosure was printed on a Bambu P1S with black PLA+ filament. For the most part the stock filament settings were used. Slowing down the first layer speeds by 50% helps with adhesion and finish if you are using a textured build plate. The light pipe holes in the top had to be drilled a bit to fit 1.75mm transparent PETG which was lightly glued to hold it in place. Use small screws to hold the PCB to the bottom part standoffs and attach the top with the encoder nuts.
+The prototype enclosure was printed on a Bambu P1S with black PLA+ filament. For the most part the stock filament settings were used. Slowing down the first layer speeds by 50% helps with adhesion and finish if you are using a textured build plate. The light pipe holes in the top had to be drilled a bit to fit 1.75mm transparent PETG which was lightly glued to hold it in place. Use small screws to attach the PCB to the standoffs in the enclosure bottom. Slide the enclosure top over the encoder shafts and hold it in place with encoder nuts.
 
 
 ![](https://github.com/rheslip/Twisty-2-MIDIController/blob/main/images/IMG_0615.JPG)
