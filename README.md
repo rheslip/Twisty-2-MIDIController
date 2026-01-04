@@ -14,6 +14,13 @@ Twisty 2 is a completely open source project - source code, KICad schematics and
 
 ![](https://github.com/rheslip/Twisty-2-MIDIController/blob/main/images/IMG_0611.JPG)
 
+**Build Guide**
+
+Solder the .1u caps, resistors and the diode. Solder the 16 SK6812 RGB leds making sure the orientation is correct and that the LEDs face the top side of the PCB. Solder the TRS MIDI out jack.
+
+Clip the support lugs off all the encoders - there was not enough room in the layout to accomodate them. The encoders have good mechanical support from the enclosure top anyway. The encoders mount from the TOP side of the board and are soldered on the bottom side. You **MUST** solder S2, S6, D2 and D6 **BEFORE** mounting the Pico board. Soldering S2, S6 and then the Pico makes soldering the Pico somewhat easier than soldering all the encoders first.
+
+After all the encoders are soldered, mount the OLED display - temporarily mount the enclosure top as a guide to get the spacing from the display to the top correct.
 
 Hardest part of the build is soldering the three TSSOP 74HC4067 analog MUXes. If encoders aren't working, check your soldering carefully! Rest of the build is straightforward.
 
@@ -33,23 +40,17 @@ Side view of OLED mounting
 ![](https://github.com/rheslip/Twisty-2-MIDIController/blob/main/images/IMG_0614.JPG)
 
 
+**Enclosure**
+
+The prototype enclosure was printed on a Bambu P1S with black PLA+ filament. For the most part the stock filament settings were used. Slowing down the first layer speeds by 50% helps with adhesion and finish if you are using a textured build plate. The light pipe holes in the top had to be drilled a bit to fit 1.75mm transparent PETG which was lightly glued to hold it in place. Use small screws to hold the PCB to the bottom part standoffs and attach the top with the encoder nuts.
+
+
 Light pipes are short sections of transparent 3D printer filament.
 
 
 ![](https://github.com/rheslip/Twisty-2-MIDIController/blob/main/images/IMG_0615.JPG)
 
 
-**Build Guide**
-
-Solder the .1u caps, resistors and the diode. Solder the 16 SK6812 RGB leds making sure the orientation is correct and that the LEDs face the top side of the PCB. Solder the TRS MIDI out jack.
-
-Clip the support lugs off all the encoders - there was not enough room in the layout to accomodate them. The encoders have good mechanical support from the enclosure top anyway. The encoders mount from the TOP side of the board and are soldered on the bottom side. You **MUST** solder S2, S6, D2 and D6 **BEFORE** mounting the Pico board. Soldering S2, S6 and then the Pico makes soldering the Pico somewhat easier than soldering all the encoders first.
-
-After all the encoders are soldered, mount the OLED display - temporarily mount the enclosure top as a guide to get the spacing from the display to the top correct.
-
-**Enclosure**
-
-The prototype enclosure was printed on a Bambu P1S with black PLA+ filament. For the most part the stock filament settings were used. Slowing down the first layer speeds by 50% helps with adhesion and finish if you are using a textured build plate. The light pipe holes in the top had to be drilled a bit to fit 1.75mm transparent PETG which was lightly glued to hold it in place. Use small screws to hold the PCB to the bottom part standoffs and attach the top with the encoder nuts.
 
 **User Guide**
 
