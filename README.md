@@ -28,7 +28,7 @@ Hardest part of the build is soldering the three TSSOP 74HC4067 analog MUXes. If
 ![](https://github.com/rheslip/Twisty-2-MIDIController/blob/main/images/IMG_0612.JPG)
 
 
-Pico can be mounted with header strips. I used headers in the corners and short wires to connect the Pico to the PCB which makes the Pico board a lot easier to remove if needed.
+Pico can be mounted with header strips. I used header pins in the corners and short wires to connect the Pico to the PCB which makes the Pico board a lot easier to remove if needed.
 
 
 ![](https://github.com/rheslip/Twisty-2-MIDIController/blob/main/images/IMG_0613.JPG)
@@ -43,9 +43,6 @@ Side view of OLED mounting
 **Enclosure**
 
 The prototype enclosure was printed on a Bambu P1S with black PLA+ filament. For the most part the stock filament settings were used. Slowing down the first layer speeds by 50% helps with adhesion and finish if you are using a textured build plate. The light pipe holes in the top had to be drilled a bit to fit 1.75mm transparent PETG which was lightly glued to hold it in place. Use small screws to hold the PCB to the bottom part standoffs and attach the top with the encoder nuts.
-
-
-Light pipes are short sections of transparent 3D printer filament.
 
 
 ![](https://github.com/rheslip/Twisty-2-MIDIController/blob/main/images/IMG_0615.JPG)
