@@ -55,16 +55,16 @@ The prototype enclosure was printed on a Bambu P1S with black PLA+ filament. For
 
 The top 16 controls (control=encoder+switch) are used to send MIDI CC messages, program change messages or or note on/off messages depending on how the controls are configured. The two extra controls at the bottom are used in conjunction with the OLED display to configure controls, save configurations and recall configurations.
 
-The RGB LEDs associated with each control normally show the state of whatever was last used - encoder as a color and switch states as off or bright white. Double click the bottom left control to toggle between showing encoder states and switch states.
+The RGB LEDs associated with each control normally show the state of whatever was last used - encoder as a color and switch states as off or bright white. Encoder LED brightness changes as the control is moved to give a relative idea of the encoder setting. Double click the bottom left control to toggle between showing encoder states and switch states.
 
 Rotate bottom left encoder to move between the 4 pages of controls. Default colors for each page are Red (page 1), Orange (page 2), Green (page ) and Aqua (page 4).
 
-The top line of the OLED display shows the current page, the last used control, its message type and MIDI channel. The larger text below that shows the last used control, a label if one has been configured for that control and the value that was last sent for that control.
+The top line of the OLED display shows the current page, the last used control, its message type and MIDI channel. The larger text below that shows a label if one has been configured and the last value that was sent for that control.
 
 
 **The Configuration Menu**
 
-Clicking the bottom left control will bring up a configuration menu to edit the last control that was used. The LED for that control will flash to indicate it is selected for editing. To select a different control when in edit mode either press a control switch to choose it or use bottom left encoder to scroll to a different control to edit.
+Clicking the bottom left control will bring up a configuration menu to edit the last control that was used. The LED for that control will flash to indicate it is selected for editing. To select a different control when in edit mode either press a control switch to choose it or use bottom left encoder to scroll to a different control on the current page.
 
 When in edit mode use the bottom right encoder the scroll through the edit menu items. Click the bottom right control switch to select an item - a "*" character will appear beside the item to indicate it is being edited. Use the bottom right encoder to change the value for the item and click the bottom right encoder switch to select a value.
 
@@ -76,13 +76,13 @@ Click the bottom left encoder again to exit the configuration edit menu.
 
 **Enc CC No.**  - selects the CC number for this encoder. The default CC assignments are 16-31 for page 1, 32-47 for page 2, 48-63 for page 3 and 64-79 for page 4
 
-**Enc Label** - this defaults to "CC". There are approximately 100 common audio terms that can be selected such as "Level", "Filter", "Track" etc. which can be used as an aid for remembering the function of the control. The label will be displayed instead of the CC number whenever this encoder is used.
+**Enc Label** - default is "CC". There are approximately 100 common audio terms (e.g. "Level", "Filter", "Track"...) that can be selected as an aid for remembering the function of the control. The label will be displayed instead of the CC number whenever this encoder is used.
 
-**Enc Color** - this selects the LED color for this encoder - Red, Orange, Green, Aqua, Blue or Violet. This is useful for grouping control functions by color.
+**Enc Color** - selects the LED color for this encoder - Red, Orange, Green, Aqua, Blue or Violet. This is useful for grouping control functions by color.
 
-**Enc Min** - the minimum CC value that will be sent when the encoder is rotated - defaults to 0
+**Enc Min** - minimum CC value that will be sent when the encoder is rotated - defaults to 0
 
-**Enc Max** - the maximum CC value that will be sent when the encoder is rotated - defaults to 127. 
+**Enc Max** - maximum CC value that will be sent when the encoder is rotated - defaults to 127. 
 **Note** If the minimum setting is higher than the maximum the encoder will reverse ie rotating clockwise sends a lower CC value.
 
 **Switch MIDI Ch.** - selects the MIDI channel that the selected switch will send CC messages on
@@ -91,13 +91,13 @@ Click the bottom left encoder again to exit the configuration edit menu.
 
 **Switch Type** - selects switch function:
 
- **CC** = send CC messages 
+     **CC** = send CC messages 
  
- **PC** = send program change messages
+     **PC** = send program change messages
  
- **Note** = send Note on/off messages
+     **Note** = send Note on/off messages
  
- **SetEnc** = when the switch is activated, set the associated encoder on this control to Maxvalue. This provides a quick way to set an encoder to a specific value e.g. set a filter to flat response.
+     **SetEnc** = when the switch is activated, set the associated encoder on this control to Maxvalue. This provides a quick way to set an encoder to a specific value e.g. set a filter to flat response.
  
 **Switch CC No.** - selects the CC number for this switch. This selection only applies when the switch type is send CC messages. The default switch CC assignments are the same as the associated encoder but on MIDI channel 2. 
 
@@ -118,9 +118,9 @@ Clicking the bottom right encoder enters the save/load menu. Twisty 2 supports s
 
 **Slot** - selects the slot number 1-16 to save the current configuration to.
 
-**Action** - select Load to load an already saved configuration from the selected slot. Save to save the current configuration to the selected slot. Format to reformat the LittleFS partition - this will ERASE ALL previously saved configurations.
+**Action** - select Load to load an already saved configuration from the selected slot. Save will save the current configuration to the selected slot. Format will reformat the LittleFS partition - this will ERASE ALL previously saved configurations.
 
-**Confirm** - select Yes to confirm the selected action. The app will NOT warn you if you are about to overwrite an existing configuration. If Yes is selected the requested action will be performed, a success/fail message will appear and the Save?load Menu will exit.
+**Confirm** - select Yes to confirm the selected action. The app will **NOT** warn you if you are about to overwrite an existing configuration. If Yes is selected the requested action will be performed, a success/fail message will appear and the Save/load Menu will exit.
 
 **Note** You will get an error message if you attempt to load a configuration slot that hasn't previously been saved to.
 
@@ -136,7 +136,7 @@ If you want BLE MIDI, use a Pico W or Pico 2W and uncomment the #define BLUETOOT
 Note: I used the Control Surface library because it was the only one I could find that supports BLE MIDI for Arduino Pico. It will give you a "platform not supported" warning when you compile with Bluetooth support. This library has a bug which messes up BLE MIDI Note On/Off messages so that code is commented out until I find a solution. Switch type Note works fine for USB or TRS MIDI.
 
 
-**Library Dependancies**
+**Library Dependencies**
 
 Adafruit Graphics
 
