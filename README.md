@@ -18,7 +18,7 @@ Twisty 2 is a completely open source project - source code, KICad schematics and
 
 Solder the .1u caps, resistors and the diode. Solder the 16 SK6812 RGB leds making sure the orientation is correct and that the LEDs face the top side of the PCB. Solder the TRS MIDI out jack.
 
-Solder the TSSOP 74HC4067s. I find it easiest to apply a very thin layer of flux to the pads, tack 1 pin down and when the alignment if correct tack another pin down. Make sure the leads are sitting flat on the pads. Solder each pin with very fine solder and don't worry about shorts between pins. Once all the pins are soldered examine your work carfully with a magnifier and remove any shorts beween pins with fine solder wick.
+Solder the TSSOP 74HC4067s. I apply a very thin layer of flux to the pads and place the chip so its aligned on the pads. Using a fine tipped soldering iron tack one pin down with solder, adjust as needed and when the part is correctly aligned tack another pin down. Make sure the pins are sitting flat on the pads before you solder the rest. Solder each pin with very fine solder and don't worry about shorts between pins. Once all the pins are soldered examine your work with a magnifier and remove any shorts beween pins with fine solder wick.
 
 Clip the support lugs off all the encoders - there was not enough room in the layout to accomodate them. The encoders have good mechanical support from the enclosure top anyway. The encoders mount from the TOP side of the board and are soldered on the bottom side. You **MUST** solder S2, S6, D2 and D6 **BEFORE** mounting the Pico board. Soldering S2, S6 and then the Pico makes soldering the Pico somewhat easier than soldering all the encoders first.
 
