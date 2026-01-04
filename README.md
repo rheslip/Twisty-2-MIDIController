@@ -1,8 +1,8 @@
-# Twisty 2 MIDIController
+# Twisty 2 MIDI Controller
 2nd Generation of my Twisty MIDI controller using Raspberry Pi Pico or Pico 2.
 
-16 parameter encoders with switches and RGB LEDs, 2 menu encoders, OLED display, USB MIDI, TRS MIDI Out, Bluetooth MIDI with Pico W.
-Four pages of parameters, encoder ranges, switch function and colors fully customizable. Save and recall up to 16 controller setups. STL files for 3D printed case.
+The Twisty 2 MIDI controller has 16 parameter encoders with switches, 16 RGB LEDs, 2 menu encoders, 128x32 pixel OLED display, USB MIDI, TRS MIDI Out, and optional Bluetooth MIDI with Pico W or Pico 2W.
+It provides four pages of parametersAND fully customizable encoder ranges, switch functions, MIDI messages and LED colors for each control. You can save and recall up to 16 controller setups in the Pico's flash memory. STL files for a 3D printed case are provided as well.
 
 ![](https://github.com/rheslip/Twisty-2-MIDIController/blob/main/images/IMG_0609.JPG)
 
@@ -55,71 +55,72 @@ The top 16 controls (control=encoder+switch) are used to send MIDI CC messages, 
 
 The RGB LEDs associated with each control normally show the state of whatever was last used - encoder as a color and switch states as off or bright white. Double click the bottom left control to toggle between showing encoder states and switch states.
 
-Rotate left encoder to move between the 4 pages of controls. Default colors for each page are Red (page 1), Orange (page 2), Green (page ) and Aqua (page 4).
+Rotate bottom left encoder to move between the 4 pages of controls. Default colors for each page are Red (page 1), Orange (page 2), Green (page ) and Aqua (page 4).
 
 The top line of the OLED display shows the current page, the last used control, its message type and MIDI channel. The larger text below that shows the last used control, a label if one has been configured for that control and the value that was last sent for that control.
 
 
 **The Configuration Menu**
 
-Clicking the bottom left control will bring up a configuration edit menu for the last control that was used. The LED for that control will flash to indicate it is selected for editing. To choose a different control to edit either press that control's switch or use bottom left encoder to scroll to a different control.
+Clicking the bottom left control will bring up a configuration menu to edit the last control that was used. The LED for that control will flash to indicate it is selected for editing. To select a different control when in edit mode either press a control switch to choose it or use bottom left encoder to scroll to a different control to edit.
 
-When in edit mode use the bottom right encoder the scroll through the edit menu items. Click the bottom right control switch to select an item - a "*" character will appear beside the item to indicate it is being edited. Use the bottom right encoder to change the value for the item and click the switch to select a value.
+When in edit mode use the bottom right encoder the scroll through the edit menu items. Click the bottom right control switch to select an item - a "*" character will appear beside the item to indicate it is being edited. Use the bottom right encoder to change the value for the item and click the bottom right encoder switch to select a value.
 
 Click the bottom left encoder again to exit the configuration edit menu.
 
-Configuration Menu Items:
+**Configuration Menu Items:**
 
-Enc MIDI Ch. - selects the MIDI channel that the selected encoder will send CC messages on
+**Enc MIDI Ch.** - selects the MIDI channel that the selected encoder will send CC messages on
 
-Enc CC No.  - selects the CC number for this encoder. The default CC assignments are 16-31 for page 1, 32-47 for page 2, 48-63 for page 3 and 64-79 for page 4
+**Enc CC No.**  - selects the CC number for this encoder. The default CC assignments are 16-31 for page 1, 32-47 for page 2, 48-63 for page 3 and 64-79 for page 4
 
-Enc Label - this defaults to "CC". There are approximately 100 common audio terms that can be selected such as "Level", "Filter", "Track" etc. This label will be displayed instead of the CC number whenever this encoder is used.
+**Enc Label** - this defaults to "CC". There are approximately 100 common audio terms that can be selected such as "Level", "Filter", "Track" etc. which can be used as an aid for remembering the function of the control. The label will be displayed instead of the CC number whenever this encoder is used.
 
-Enc Color - this selects the LED color for this encoder - Red, Orange, Green, Aqua, Blue or Violet. This is useful for grouping encoder functions by color.
+**Enc Color** - this selects the LED color for this encoder - Red, Orange, Green, Aqua, Blue or Violet. This is useful for grouping control functions by color.
 
-Enc Min - the minimum CC value that will be send when the encoder is rotated - defaults to 0
+**Enc Min** - the minimum CC value that will be sent when the encoder is rotated - defaults to 0
 
-Enc Max - the maximum CC value that will be send when the encoder is rotated - defaults to 127. Note that if the minimum setting is higher than the maximum the encoder will reverse ie rotating clockwise sends a lower CC value.
+**Enc Max** - the maximum CC value that will be sent when the encoder is rotated - defaults to 127. 
+**Note** If the minimum setting is higher than the maximum the encoder will reverse ie rotating clockwise sends a lower CC value.
 
-Switch MIDI Ch. - selects the MIDI channel that the selected switch will send CC messages on
+**Switch MIDI Ch.** - selects the MIDI channel that the selected switch will send CC messages on
 
-Switch Mode - selects either momentary mode (press for max value, release for min value) or toggle mode (select min or max value on alternate presses)
+**Switch Mode** - selects either momentary mode (press for max value, release for min value) or toggle mode (select min or max value on alternate presses)
 
-Switch Type - selects switch function:
+**Switch Type** - selects switch function:
 
- CC = send CC messages 
+ **CC** = send CC messages 
  
- PC = send program change messages
+ **PC** = send program change messages
  
- Note = send Note on/off messages
+ **Note** = send Note on/off messages
  
- SetEnc = when the switch is activated, reset the associated encoder on this control to Maxvalue. This provides a quick way to set an encoder to a specific value e.g. set a filter to flat response.
+ **SetEnc** = when the switch is activated, set the associated encoder on this control to Maxvalue. This provides a quick way to set an encoder to a specific value e.g. set a filter to flat response.
  
-Switch CC No. - selects the CC number for this switch. This selection only applies when the switch type is send CC messages. The default CC assignments are the same as the associated encoder but on MIDI channel 2. 
+**Switch CC No.** - selects the CC number for this switch. This selection only applies when the switch type is send CC messages. The default switch CC assignments are the same as the associated encoder but on MIDI channel 2. 
 
-Switch Label - same as encoder label - a memory aid for what the switch does
+**Switch Label** - same as encoder label - a memory aid for what the switch does
 
-Switch Min - CC, PC or note value sent when the switch changes to its inactive state. defaults to 0
+**Switch Min** - CC, PC or note value sent when the switch changes to its inactive state. defaults to 0
 
-Switch Max - CC, PC or note value sent when the switch changes to its active state. defaults to 127. Value encoder is sent to when switch type is SetEnc 
+**Switch Max** - CC, PC or note value sent when the switch changes to its active state. defaults to 127. When switch type is SetEnc, sets associated encoder to this value.
 
 
 **The Save/Load Menu**
 
-Clicking the bottom right encoder enters the save/load menu on the display. The unit supports saving and loading up to 16 different configurations in the Pico's flash memory.
+Clicking the bottom right encoder enters the save/load menu. Twisty 2 supports saving and loading up to 16 different configurations in the Pico's flash memory.
 
-Note that you must select an FS size in the Arduino Pico Tools menu - 128K or larger is suggested. The application will automatically format a new FS if it has not been used before. Internally the application uses the LittleFS filesystem and stores configurations as JSON files.
+**Note** You must select an FS size in the Arduino Pico Tools menu - 128K or larger is suggested. The application will automatically format a new FS if it has not been used before. Internally the application uses the LittleFS filesystem and stores configurations as JSON files.
 
-Save/Load Menu Items:
+**Save/Load Menu Items:**
 
-Slot - selects the slot number 1-16 to save the current configuration to.
+**Slot** - selects the slot number 1-16 to save the current configuration to.
 
-Action - select Load to load an already saved configuration from the selected slot. Save to save the current configuration to the selected slot. Format to reformat the LittleFS partition - this will ERASE ALL previously saved configurations.
+**Action** - select Load to load an already saved configuration from the selected slot. Save to save the current configuration to the selected slot. Format to reformat the LittleFS partition - this will ERASE ALL previously saved configurations.
 
-Confirm - select Yes to confirm the selected action. The app will NOT warn you if you are about to overwrite an existing configuration. If Yes is selected the requested action will be performed, a success/fail message will appear and the Save?load Menu will exit.
+**Confirm** - select Yes to confirm the selected action. The app will NOT warn you if you are about to overwrite an existing configuration. If Yes is selected the requested action will be performed, a success/fail message will appear and the Save?load Menu will exit.
 
-Note - if you attempt to load a configuration slot that hasn't previously been save to you will get an error.
+**Note** You will get an error message if you attempt to load a configuration slot that hasn't previously been saved to.
 
 To exit the Save/Load menu without changing anything click the bottom left control switch.
 
