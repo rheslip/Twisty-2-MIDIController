@@ -26,16 +26,20 @@
 
 
 // file operations for Twisty 2
-// configurations are saved and loaded in JSON format
+//  settings of encoders and switches saved and loaded in JSON format
+// JSON allows adding features without breaking old settings
+// using the LittleFFS filesystem in Pico Arduino 
+// you have to set up an FFS partition in Arduino tools menu or file operations will fail
 
-#define VERSION 100 // JSON format is versioned in case it changes at some point
+#define VERSION 100 // file format version in case it changes at some point
 
-// save current config to filesystem
+// save current settings to filesystem in JSON format
+
 int16_t saveconfig(int16_t slot) {
   char filename[20];
   sprintf(filename,"slot%d.json",slot);
 
-  if (LittleFS.exists(filename)) LittleFS.remove(filename); // open for write doesn't seem to overwrite so delete exiting file
+  if (LittleFS.exists(filename)) LittleFS.remove(filename); // delete exiting file
 
   File file = LittleFS.open(filename, "w");
   if (!file) {
@@ -56,8 +60,8 @@ int16_t saveconfig(int16_t slot) {
       file.printf("\"EncoderMinValue\":%d,",controls[p].encoder[c].minvalue);
       file.printf("\"EncoderMaxValue\":%d,",controls[p].encoder[c].maxvalue);
       file.printf("\"EncoderValue\":%d,",controls[p].encoder[c].value);
-      file.printf("\"EncoderColor\":%d,",controls[p].encoder[c].color);
-      file.printf("\"EncoderLabel\":%d,",controls[p].encoder[c].label);
+      file.printf("\"EncoderColorIndex\":%d,",controls[p].encoder[c].colorindex);
+      file.printf("\"EncoderLabelIndex\":%d,",controls[p].encoder[c].labelindex);
       file.printf("\"SwitchMode\":%d,",controls[p].encswitch[c].mode);
       file.printf("\"SwitchType\":%d,",controls[p].encswitch[c].type);
       file.printf("\"SwitchChannel\":%d,",controls[p].encswitch[c].channel);
@@ -65,8 +69,8 @@ int16_t saveconfig(int16_t slot) {
       file.printf("\"SwitchMinValue\":%d,",controls[p].encswitch[c].minvalue);
       file.printf("\"SwitchMaxValue\":%d,",controls[p].encswitch[c].maxvalue);
       file.printf("\"SwitchValue\":%d,",controls[p].encswitch[c].value);
-      file.printf("\"SwitchColor\":%d,",controls[p].encswitch[c].color);
-      file.printf("\"SwitchLabel\":%d",controls[p].encswitch[c].label);
+      file.printf("\"SwitchColorIndex\":%d,",controls[p].encswitch[c].colorindex);
+      file.printf("\"SwitchLabelIndex\":%d",controls[p].encswitch[c].labelindex);
       if (c == (NUMENCODERS-1)) file.printf("}\n");
       else file.printf("},\n");
     }
@@ -79,7 +83,8 @@ int16_t saveconfig(int16_t slot) {
 }
 
 
-// read and deserialize JSON file
+// read and deserialize JSON settings file
+
 int16_t loadconfig(int16_t slot) {
   char filename[20];
   sprintf(filename,"slot%d.json",slot);
@@ -94,13 +99,12 @@ int16_t loadconfig(int16_t slot) {
     return 0;
   }
 
-  // Allocate the JSON document
+  // Allocate the JSON document 
   JsonDocument doc;
 
-  // Deserialize the JSON document from the file
+  // Deserialize JSON document from file
   DeserializationError error = deserializeJson(doc, file);
 
-  // Close the file
   file.close();
 
   if (error) {
@@ -108,8 +112,7 @@ int16_t loadconfig(int16_t slot) {
     Serial.println(error.f_str());
     return 0;
   } else {
-    // Data has been deserialized successfully, access the values
-    int16_t mode,channel,ccnumber,minvalue,maxvalue,value,color,label; 
+    // Data has been deserialized successfully, restore settings 
 
     for (int16_t p=0;p<CONTROLLER_PAGES;++p) {
       for (int16_t c=0; c< NUMENCODERS;c++) {
@@ -119,8 +122,8 @@ int16_t loadconfig(int16_t slot) {
         controls[p].encoder[c].minvalue=doc["page"][p]["control"][c]["EncoderMinValue"];
         controls[p].encoder[c].maxvalue=doc["page"][p]["control"][c]["EncoderMaxValue"];
         controls[p].encoder[c].value=doc["page"][p]["control"][c]["EncoderValue"];
-        controls[p].encoder[c].color=doc["page"][p]["control"][c]["EncoderColor"];
-        controls[p].encoder[c].label=doc["page"][p]["control"][c]["EncoderLabel"];
+        controls[p].encoder[c].colorindex=doc["page"][p]["control"][c]["EncoderColorIndex"];
+        controls[p].encoder[c].labelindex=doc["page"][p]["control"][c]["EncoderLabelIndex"];
         controls[p].encswitch[c].mode=doc["page"][p]["control"][c]["SwitchMode"];
         controls[p].encswitch[c].type=doc["page"][p]["control"][c]["SwitchType"];
         controls[p].encswitch[c].channel=doc["page"][p]["control"][c]["SwitchChannel"];
@@ -128,8 +131,8 @@ int16_t loadconfig(int16_t slot) {
         controls[p].encswitch[c].minvalue=doc["page"][p]["control"][c]["SwitchMinValue"];
         controls[p].encswitch[c].maxvalue=doc["page"][p]["control"][c]["SwitchMaxValue"];
         controls[p].encswitch[c].value=doc["page"][p]["control"][c]["SwitchValue"];
-        controls[p].encswitch[c].color=doc["page"][p]["control"][c]["SwitchColor"];
-        controls[p].encswitch[c].label=doc["page"][p]["control"][c]["SwitchLabel"];
+        controls[p].encswitch[c].colorindex=doc["page"][p]["control"][c]["SwitchColorIndex"];
+        controls[p].encswitch[c].labelindex=doc["page"][p]["control"][c]["SwitchLabelIndex"];
       }
     }
   }

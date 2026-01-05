@@ -47,7 +47,7 @@
 #include <ArduinoJson.h>
 #include "LittleFS.h"
 
-// #define BLUETOOTH  // define for bluetooth MIDI - not working yet on Pico 2W
+#define BLUETOOTH  // define for bluetooth MIDI 
 #ifdef BLUETOOTH
 #include <Control_Surface.h>
 #include <MIDI_Interfaces/BluetoothMIDI_Interface.hpp>
@@ -85,7 +85,6 @@ int8_t brightness_table[32] ={  // more or less exponential table to compensate 
 
 Adafruit_NeoPixel LEDS(NUMPIXELS, LEDPIN, NEO_GRB + NEO_KHZ800);
 
-// I used mostly int16 types - its what the menu requires and the compiler seems to deal with basic conversions
 #define OLED_RESET -1        // Reset pin # (or -1 if sharing Arduino reset pin)
 #define SCREEN_ADDRESS 0x3C  ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 #define SCREEN_WIDTH 128  // OLED display width, in pixels
@@ -145,25 +144,29 @@ ClickEncoder lmenuenc(LMENU_ENCA_IN,LMENU_ENCB_IN,LMENU_ENCSW_IN,ENCDIVIDE); // 
 ClickEncoder rmenuenc(RMENU_ENCA_IN,RMENU_ENCB_IN,RMENU_ENCSW_IN,ENCDIVIDE); // right menu encoder object
 
 #ifdef BLUETOOTH
+// Instantiate a MIDI over BLE interface
 BluetoothMIDI_Interface midi_ble;
 #endif
+
 // USB MIDI object
 Adafruit_USBD_MIDI usb_midi;
-// serial MIDI object
-MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, serialMIDI);
-// Instantiate a MIDI over BLE interface
-
-
-// Create a new instance of the Arduino MIDI Library,
-// and attach usb_midi as the transport.
+// attach usb_midi as the transport.
 MIDI_CREATE_INSTANCE(Adafruit_USBD_MIDI, usb_midi, MidiUSB);
 
-#define BASE_CC 16  // lowest CC number to use
+// serial MIDI object
+MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, serialMIDI);
+
+#define BASE_CC 16  // lowest default CC number to use
+#define DEFAULT_VELOCITY 127
 #define CONTROLLER_PAGES 4  // number of pages
-#define DEFAULT_CHANNEL 1  // default MIDI channel
+#define DEFAULT_ENCODER_CHANNEL 1  // default MIDI channel for encoders
+#define DEFAULT_SWITCH_CHANNEL 2  // default MIDI channel for encoders
 uint16_t page=0; // CC page 0-3
+uint8_t lastnotesent=0; // keeps track of last note sent when switch sends note messages
+bool displaySwitchLEDs;    // toggle to show switch or encoder states
 enum encodertypes {CCTYPE};
 enum switchmodes {MOMENTARY,TOGGLE};
+enum switchtypes {CCMESSAGE,PCMESSAGE,NOTEMESSAGE,SETENC};
 
 struct controllerencoder {
   int16_t type;   // midi message type
@@ -172,8 +175,8 @@ struct controllerencoder {
   int16_t minvalue;
   int16_t maxvalue;
   int16_t value;
-  int16_t color;  // leds are 8 bits R, G and B
-  int16_t label; // index of label
+  int16_t colorindex;  // index into color lookup table leds are 8 bits R, G and B
+  int16_t labelindex; // index of label
 };
 
 struct controllerswitch {
@@ -184,8 +187,8 @@ struct controllerswitch {
   int16_t minvalue;
   int16_t maxvalue;
   int16_t value;
-  int16_t color;
-  int16_t label; // index of label
+  int16_t colorindex;
+  int16_t labelindex; // index of label
 };
 
 struct controllerpage {
@@ -205,22 +208,22 @@ void initcontrols(void) {
   for (int16_t p=0;p<CONTROLLER_PAGES;++p) {
     for (int16_t i=0; i<NUMENCODERS;++i) {
       controls[p].encoder[i].type=CCTYPE;
-      controls[p].encoder[i].channel=DEFAULT_CHANNEL;
+      controls[p].encoder[i].channel=DEFAULT_ENCODER_CHANNEL;
       controls[p].encoder[i].ccnumber=ccnumber;
       controls[p].encoder[i].minvalue=0;
       controls[p].encoder[i].maxvalue=127;
       controls[p].encoder[i].value=64;
-      controls[p].encoder[i].color=p;
-      controls[p].encoder[i].label=0;  // label index 0 is "CC"
+      controls[p].encoder[i].colorindex=p;
+      controls[p].encoder[i].labelindex=0;  // label index 0 is "CC"
       controls[p].encswitch[i].mode=TOGGLE;
       controls[p].encswitch[i].type=CCTYPE;
-      controls[p].encswitch[i].channel=DEFAULT_CHANNEL+1;
+      controls[p].encswitch[i].channel=DEFAULT_SWITCH_CHANNEL;
       controls[p].encswitch[i].ccnumber=ccnumber++;
       controls[p].encswitch[i].minvalue=0;
       controls[p].encswitch[i].maxvalue=127;
       controls[p].encswitch[i].value=0;
-      controls[p].encswitch[i].color=p;  // not used for now
-      controls[p].encswitch[i].label=0;  // label index 0 is "CC"
+      controls[p].encswitch[i].colorindex=p;  // not used for now
+      controls[p].encswitch[i].labelindex=0;  // label index 0 is "CC"
     }  
   }
 }
@@ -229,9 +232,6 @@ void initcontrols(void) {
 int16_t saverestore_slot=1;
 int16_t saverestore_action=0; // initial setting is restore
 int16_t saverestore_confirm=0; // take/don't take action
-
-// Allocate the JSON document for save/restore
-JsonDocument doc;
 
 enum control {ENCODER,BUTTON};
 int16_t lastcontrol=0; // keeps track of last used control
@@ -244,16 +244,16 @@ void copy_to_editbuffer(int16_t page,int16_t index) {
   editbuffer.encoder.ccnumber=controls[page].encoder[index].ccnumber;
   editbuffer.encoder.minvalue=controls[page].encoder[index].minvalue;
   editbuffer.encoder.maxvalue=controls[page].encoder[index].maxvalue;
-  editbuffer.encoder.color=controls[page].encoder[index].color;
-  editbuffer.encoder.label=controls[page].encoder[index].label;
+  editbuffer.encoder.colorindex=controls[page].encoder[index].colorindex;
+  editbuffer.encoder.labelindex=controls[page].encoder[index].labelindex;
   editbuffer.encswitch.mode=controls[page].encswitch[index].mode;
   editbuffer.encswitch.type=controls[page].encswitch[index].type;
   editbuffer.encswitch.channel=controls[page].encswitch[index].channel;
   editbuffer.encswitch.ccnumber=controls[page].encswitch[index].ccnumber;
   editbuffer.encswitch.minvalue=controls[page].encswitch[index].minvalue;
   editbuffer.encswitch.maxvalue=controls[page].encswitch[index].maxvalue;
-  editbuffer.encswitch.color=controls[page].encswitch[index].color;
-  editbuffer.encswitch.label=controls[page].encswitch[index].label;
+  editbuffer.encswitch.colorindex=controls[page].encswitch[index].colorindex;
+  editbuffer.encswitch.labelindex=controls[page].encswitch[index].labelindex;
 }
 
 // copy edited temporary parameters to encoder parameters
@@ -263,16 +263,16 @@ void restore_from_editbuffer(int16_t page,int16_t index) {
   controls[page].encoder[index].ccnumber=editbuffer.encoder.ccnumber;
   controls[page].encoder[index].minvalue=editbuffer.encoder.minvalue;
   controls[page].encoder[index].maxvalue=editbuffer.encoder.maxvalue;
-  controls[page].encoder[index].color=editbuffer.encoder.color;
-  controls[page].encoder[index].label=editbuffer.encoder.label;
+  controls[page].encoder[index].colorindex=editbuffer.encoder.colorindex;
+  controls[page].encoder[index].labelindex=editbuffer.encoder.labelindex;
   controls[page].encswitch[index].mode=editbuffer.encswitch.mode;
   controls[page].encswitch[index].type=editbuffer.encswitch.type;
   controls[page].encswitch[index].channel=editbuffer.encswitch.channel;
   controls[page].encswitch[index].ccnumber=editbuffer.encswitch.ccnumber;
   controls[page].encswitch[index].minvalue=editbuffer.encswitch.minvalue;
   controls[page].encswitch[index].maxvalue=editbuffer.encswitch.maxvalue;
-  controls[page].encswitch[index].color=editbuffer.encswitch.color;
-  controls[page].encswitch[index].label=editbuffer.encswitch.label;
+  controls[page].encswitch[index].colorindex=editbuffer.encswitch.colorindex;
+  controls[page].encswitch[index].labelindex=editbuffer.encswitch.labelindex;
 }
 
 enum ui_states {UI_SEND_MIDI,UI_EDIT,UI_LOADSAVE};
@@ -320,28 +320,49 @@ static void alarm_irq(void) {
 #include "fileio.h"
 
  // midi related stuff
-// Channel is 0-15. Typically reported to the user as 1-16.
 
-void sendnoteOn(byte channel, byte pitch, byte velocity) {
+void sendnoteOn(uint8_t channel,uint8_t pitch, uint8_t velocity) {
   MidiUSB.sendNoteOn(pitch,velocity,channel);
   serialMIDI.sendNoteOn(pitch,velocity,channel);
+#ifdef BLUETOOTH
+// control surface library requires this form of MIDI addressing -I'm not a fan of the design but its the only Arduino BLE MIDI library I could find
+// **** control surface library bug **** won't send note on/off correctly. works if note is a constant, fails if it is a variable
+//  MIDIAddress midiaddress ={pitch,Channel_1 + (channel-1)};
+//  midi_ble.sendNoteOn(midiaddress, velocity);
+#endif
 }
 
-void sendnoteOff(byte channel, byte pitch, byte velocity) {
+void sendnoteOff(uint8_t channel, uint8_t pitch,uint8_t velocity) {
   MidiUSB.sendNoteOff(pitch,velocity,channel);
   serialMIDI.sendNoteOff(pitch,velocity,channel);
+#ifdef BLUETOOTH
+//  MIDIAddress midiaddress= {pitch,Channel_1 + (channel-1)};
+//  midi_ble.sendNoteOff(midiaddress, velocity);
+#endif
 }
 
 // message 0x0B control change.
 // 2nd parameter is the control number number (0-119).
 // 3rd parameter is the control value (0-127).
 
-void sendcontrolChange(byte channel, byte control, byte value) {
+void sendcontrolChange(uint8_t channel, uint8_t control, uint8_t value) {
   MidiUSB.sendControlChange(control,value,channel);
   serialMIDI.sendControlChange(control,value,channel);
 #ifdef BLUETOOTH
-  MIDIAddress midiaddress= {control,Channel_1+channel};  // confusing way of sending MIDI messages IMO
+  MIDIAddress midiaddress= {control,Channel_1 + (channel-1)};  // confusing way of sending MIDI messages 
   midi_ble.sendControlChange(midiaddress, value); 
+#endif
+}
+
+// message program change.
+// 2nd parameter is the PC value (0-127).
+
+void sendprogramChange(uint8_t channel, uint8_t value) {
+  MidiUSB.sendProgramChange(value,channel);
+  serialMIDI.sendProgramChange(value,channel);
+#ifdef BLUETOOTH
+  MIDIAddress midiaddress= {value,Channel_1 + (channel-1)};  // confusing way of sending MIDI messages
+  midi_ble.sendProgramChange(midiaddress); 
 #endif
 }
 
@@ -365,28 +386,28 @@ void updatedisplay(){
   displaytimer=millis();
 }
 
-// show CC value of kob on display
+// show CC value of encoder on display
 void showencodercc(int16_t page, int16_t encoder){
   display.setTextSize(2);
   display.setCursor(0,16);
   display.print("              ");
   display.setCursor(0,16);
   // the default label 0 "CC" is a special case where we show the CC number in large font, otherwise we show a custom label
-  if (controls[page].encoder[encoder].label ==0) display.printf("%s %d %d","CC",controls[page].encoder[encoder].ccnumber,controls[page].encoder[encoder].value);
-  else display.printf("%s %d",labels[controls[page].encoder[encoder].label],controls[page].encoder[encoder].value);
+  if (controls[page].encoder[encoder].labelindex ==0) display.printf("%s %d %d","CC",controls[page].encoder[encoder].ccnumber,controls[page].encoder[encoder].value);
+  else display.printf("%s %d",labels[controls[page].encoder[encoder].labelindex],controls[page].encoder[encoder].value);
   display.setTextSize(1);
   updatedisplay();  
 }
 
-// show CC value of button on display
+// show CC value of switch on display
 void showswitchcc(int16_t page, int16_t button){
   display.setTextSize(2);
   display.setCursor(0,16);
   display.print("              ");
   display.setCursor(0,16);
   // the default label 0 "CC" is a special case where we show the CC number in large font, otherwise we show a custom label
-  if (controls[page].encswitch[button].label ==0) display.printf("%s %d %d","CC",controls[page].encswitch[button].ccnumber,controls[page].encswitch[button].value);
-  else display.printf("%s %d",labels[controls[page].encswitch[button].label],controls[page].encswitch[button].value);
+  if (controls[page].encswitch[button].labelindex ==0) display.printf("%s %d %d","CC",controls[page].encswitch[button].ccnumber,controls[page].encswitch[button].value);
+  else display.printf("%s %d",labels[controls[page].encswitch[button].labelindex],controls[page].encswitch[button].value);
   display.setTextSize(1);
   updatedisplay();  
 }
@@ -407,19 +428,17 @@ void showcc(int16_t cc){
   display.setTextSize(1);
   display.setCursor(32,0);
   display.printf("CC %d",cc);
-  display.setTextSize(1);
 //  updatedisplay();  
 }
-// show page number on display
+// show MIDI channel on display
 void showchannel(int16_t channel){
   display.setTextSize(1);
   display.setCursor(80,0);
   display.printf("Ch %d",channel);
-  display.setTextSize(1);
   updatedisplay(); 
 }
 
-// show encoder encoder value
+// show encoder values
 void showencoder(int16_t page,int16_t controlindex) {
     showpage(page+1);  // for display use 1 based indices
     showcc(controls[page].encoder[controlindex].ccnumber);
@@ -427,17 +446,60 @@ void showencoder(int16_t page,int16_t controlindex) {
     showencodercc(page,controlindex);
 }
 
-// show encoder switch value
+// show encoder switch mode and value
+// this got a bit messy after I added multiple switch types
 void showswitch(int16_t page,int16_t controlindex) {
-    showpage(page+1);  // for display use 1 based indices
-    showcc(controls[page].encswitch[controlindex].ccnumber);
-    showchannel(controls[page].encswitch[controlindex].channel); // update the display
-    showswitchcc(page,controlindex);
+  showpage(page+1);  // for display use 1 based indices
+  display.setCursor(32,0);
+  switch (controls[page].encswitch[controlindex].type) {
+    case CCMESSAGE:
+      display.printf("CC %d",controls[page].encswitch[controlindex].ccnumber);
+      break;
+    case PCMESSAGE:
+      display.printf("Program");
+      break;   
+    case NOTEMESSAGE:
+      display.printf("Note");
+      break;   
+    case SETENC:
+      display.printf("SetEnc");
+      break;
+    default:
+      break;      
+  }
+  if (controls[page].encswitch[controlindex].type == SETENC) showchannel(controls[page].encoder[controlindex].channel); // if we just set the encoder value show its channel
+  else showchannel(controls[page].encswitch[controlindex].channel); // otherwise show the switch MIDI channel
+  display.setTextSize(2);
+  display.setCursor(0,16);
+  display.print("              ");
+  display.setCursor(0,16);
+  switch (controls[page].encswitch[controlindex].type) {
+    case CCMESSAGE:
+  // the default label 0 "CC" is a special case where we show the CC number in large font, otherwise we show a custom label
+    if (controls[page].encswitch[controlindex].labelindex ==0) display.printf("%s %d %d","CC",controls[page].encswitch[controlindex].ccnumber,controls[page].encswitch[controlindex].value);
+    else display.printf("%s %d",labels[controls[page].encswitch[controlindex].labelindex],controls[page].encswitch[controlindex].value);
+    break;
+    case PCMESSAGE:
+      if (controls[page].encswitch[controlindex].labelindex ==0) display.printf("%s %d","Prog",controls[page].encswitch[controlindex].value);
+      else display.printf("%s %d",labels[controls[page].encswitch[controlindex].labelindex],controls[page].encswitch[controlindex].value);
+      break;
+    case NOTEMESSAGE:
+      if (controls[page].encswitch[controlindex].labelindex ==0) display.printf("%s %d","Note",controls[page].encswitch[controlindex].value);
+      else display.printf("%s %d",labels[controls[page].encswitch[controlindex].labelindex],controls[page].encswitch[controlindex].value);
+      break;  
+    case SETENC:  // show the encoder value since it was just set
+      showencodercc(page,controlindex);
+      break;  
+    default:
+      break;
+  }       
+  display.setTextSize(1);
+  updatedisplay();  
 }
 
 // show the LED associated with a encoder
 void showencoderLED(int16_t page,int16_t encoder) {
-  int32_t color=colorpalette[controls[page].encoder[encoder].color];
+  int32_t color=colorpalette[controls[page].encoder[encoder].colorindex];
   color=color/31; // scale color down to 1 bit **** this isn't going to work with custom colors
   color=color*brightness_table[(controls[page].encoder[encoder].value>>2 & 0x1f)]; // scale the brightness by the CC value
   LEDS.setPixelColor(encoder,color);
@@ -447,7 +509,6 @@ void showencoderLED(int16_t page,int16_t encoder) {
 void showswitchLED(int16_t page,int16_t button) {
   if (controls[page].encswitch[button].value == controls[page].encswitch[button].maxvalue) LEDS.setPixelColor(button,LED_WHITE);
   else LEDS.setPixelColor(button,LED_BLACK);
-//  Serial.printf("val %d \n",controls[page].sw[button].value);
 }
 
 // show all the encoder LEDs on a page
@@ -492,7 +553,7 @@ void fatalerror(const char * errorstring){
 
 // ***** Menu handler functions *****
 
-// menu function to handle save/restore menus
+// menu function to handle save/restore menus - called when user clicks "Confirm?" menu value
 void save_restore(void) {
   display.clearDisplay();
   display.setCursor(0,12);
@@ -510,7 +571,6 @@ void save_restore(void) {
   }
   if (saverestore_confirm == 0) display.printf("Aborted Save/Restore"); 
   display.display();
-  rmenuenc.getButton(); // eat the last click so we don't jump back into the save menu
   saverestore_action=saverestore_confirm=0; // reset the menu
   UI_state=UI_SEND_MIDI;  // put the UI back to default state
   page=lastcontrol=0;
@@ -551,22 +611,19 @@ void setup() {
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
   if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     Serial.println(F("SSD1306 allocation failed"));
-   // fatalerror(); // Don't proceed, loop forever
+    fatalerror(""); // Don't proceed, loop forever
   }
   display.setRotation(2);
   display.clearDisplay();
-// text display tests
   display.setTextSize(2);
 
 	display.setTextColor(WHITE,BLACK); // foreground, background  
   display.setCursor(20,0);
-  display.println("Twisty 2");
+  display.printf("Twisty 2\n"); // power on message
   display.display();
   delay(3000);
 
   initcontrols(); // set up default encoder and switch values 
-
- // for (int16_t i=0; i< NUMENCODERS;++i) enc[i].setDoubleClickEnabled(false); // turn off the doubleclick since it introduces a delay
 
   LEDS.begin(); // INITIALIZE NeoPixel strip object (REQUIRED)
   showencoderLEDs(0); // show page 0 encoder LED colors
@@ -600,12 +657,13 @@ void setup() {
 
   display.clearDisplay();
   display.setTextSize(1);  
-  showencoder(0,0);   // put something on the display
+  showencoder(0,0);   // put first encoder values on the display
   updatedisplay();
 
   flush_encoders();  // clear any initial junk from encoders
 
   displaytimer=millis(); // reset display blanking timer
+
 }
 
 void loop() {
@@ -615,13 +673,17 @@ void loop() {
 
   // read any new MIDI messages
   MidiUSB.read(); 
-  
+
+#ifdef BLUETOOTH
+  midi_ble.update();  // Update the Control Surface for BLE MIDI
+#endif
+
   if ((millis()-displaytimer) > DISPLAY_BLANK_MS) blankdisplay(); // protect the OLED from burnin
 
   switch (UI_state) {
-    case UI_SEND_MIDI: 
+    case UI_SEND_MIDI:  // process encoders
       for (int i=0;i<NUMENCODERS;++i) {
-        if ((t=enc[i].getValue()) !=0) { // if encoder has moved, update the value
+        if ((t=enc[i].getValue()) !=0) { // if encoder has moved process it
           if (controls[page].encoder[i].minvalue < controls[page].encoder[i].maxvalue ) { // normal direction
             controls[page].encoder[i].value=controls[page].encoder[i].value + t;
             if (controls[page].encoder[i].value > controls[page].encoder[i].maxvalue) controls[page].encoder[i].value = controls[page].encoder[i].maxvalue;
@@ -631,47 +693,87 @@ void loop() {
             if (controls[page].encoder[i].value > controls[page].encoder[i].minvalue) controls[page].encoder[i].value = controls[page].encoder[i].minvalue;
             if (controls[page].encoder[i].value < controls[page].encoder[i].maxvalue) controls[page].encoder[i].value = controls[page].encoder[i].maxvalue;            
           }
-         // Serial.printf("t=%d value %d\n",t,controls[page].encoder[i].value);
           sendcontrolChange(controls[page].encoder[i].channel, controls[page].encoder[i].ccnumber,controls[page].encoder[i].value);
-          lastcontrol=i;  // save index of the last used encoder for menus
+          lastcontrol=i;  // save index of the last used encoder 
           showencoderLED(page,lastcontrol);
           showencoder(page,lastcontrol);
           updatedisplay();       
         }
       }
-
+        // process switches
       for (int i=0;i<NUMENCODERS;++i) {
         event=enc[i].getButtonEvent();
-        if (event == ClickEncoder::ActiveEdge) { // button just pressed, send message and update LEDs
-         
+        if (event == ClickEncoder::ActiveEdge) { // switch just pressed, send MIDI message and update LEDs        
           switch (controls[page].encswitch[i].mode) {
             case MOMENTARY:
               controls[page].encswitch[i].value=controls[page].encswitch[i].maxvalue; 
-              sendcontrolChange(controls[page].encswitch[i].channel, controls[page].encswitch[i].ccnumber,controls[page].encswitch[i].value); //  send a MIDI message  
+              switch (controls[page].encswitch[i].type) {
+                case CCMESSAGE:
+                  sendcontrolChange(controls[page].encswitch[i].channel, controls[page].encswitch[i].ccnumber,controls[page].encswitch[i].value); 
+                  break;
+                case PCMESSAGE:
+                  sendprogramChange(controls[page].encswitch[i].channel, controls[page].encswitch[i].value); 
+                  break;
+                case NOTEMESSAGE:
+                  sendnoteOn(controls[page].encswitch[i].channel, controls[page].encswitch[i].value, DEFAULT_VELOCITY);
+                  lastnotesent=controls[page].encswitch[i].value;
+                  break;
+                case SETENC:
+                 // controls[page].encoder[i].value=controls[page].encswitch[i].maxvalue;  // do this on button release
+                  break;
+                default:
+                  break;
+              }
               break;
             case TOGGLE:
-              if (controls[page].encswitch[i].value == controls[page].encswitch[i].minvalue) {
-                controls[page].encswitch[i].value = controls[page].encswitch[i].maxvalue;
-                sendcontrolChange(controls[page].encswitch[i].channel, controls[page].encswitch[i].ccnumber,controls[page].encswitch[i].value); //  send a MIDI message  
+              if (controls[page].encswitch[i].value == controls[page].encswitch[i].minvalue) controls[page].encswitch[i].value=controls[page].encswitch[i].maxvalue; 
+              else controls[page].encswitch[i].value = controls[page].encswitch[i].minvalue;
+              switch (controls[page].encswitch[i].type) {
+                case CCMESSAGE:
+                  sendcontrolChange(controls[page].encswitch[i].channel, controls[page].encswitch[i].ccnumber,controls[page].encswitch[i].value); 
+                  break;
+                case PCMESSAGE:
+                  sendprogramChange(controls[page].encswitch[i].channel, controls[page].encswitch[i].value); 
+                  break;
+                case NOTEMESSAGE:
+                  sendnoteOff(controls[page].encswitch[i].channel, lastnotesent,0); // turn off the last note that was sent
+                  sendnoteOn(controls[page].encswitch[i].channel, controls[page].encswitch[i].value, DEFAULT_VELOCITY);
+                  lastnotesent=controls[page].encswitch[i].value; 
+                  break;
+                case SETENC:
+                  controls[page].encoder[i].value=controls[page].encswitch[i].maxvalue; 
+                  break;
+                default:
+                  break;
               }
-              else {
-                controls[page].encswitch[i].value = controls[page].encswitch[i].minvalue;
-                sendcontrolChange(controls[page].encswitch[i].channel, controls[page].encswitch[i].ccnumber,controls[page].encswitch[i].value); //  send a MIDI message  
-              }
-            // Serial.printf("mode %d val %d min %d max %d\n",controls[page].encswitch[i].mode,controls[page].encswitch[i].value,controls[page].encswitch[i].minvalue,controls[page].encswitch[i].maxvalue);
               break;
             default:
               break;
           }  // end switch
-          lastcontrol=i;  // save index of the last used encoder for menus
+          lastcontrol=i;  // save index of the last used encoder or switch
           showswitchLED(page,lastcontrol);
           showswitch(page,lastcontrol);
           updatedisplay();       
         }
-        if ((event == ClickEncoder::InActiveEdge) && (controls[page].encswitch[i].mode==MOMENTARY)) { // button just released, send message and update LEDs 
+        if ((event == ClickEncoder::InActiveEdge) && (controls[page].encswitch[i].mode==MOMENTARY)) { // button just released, send MIDI message and update LEDs 
           controls[page].encswitch[i].value=controls[page].encswitch[i].minvalue;
-          sendcontrolChange(controls[page].encswitch[i].channel, controls[page].encswitch[i].ccnumber,controls[page].encswitch[i].value); //  send a MIDI message  
-          lastcontrol=i;  // save index of the last used encoder for menus
+          switch (controls[page].encswitch[i].type) {
+            case CCMESSAGE:
+              sendcontrolChange(controls[page].encswitch[i].channel, controls[page].encswitch[i].ccnumber,controls[page].encswitch[i].value); 
+              break;
+            case PCMESSAGE:
+              sendprogramChange(controls[page].encswitch[i].channel, controls[page].encswitch[i].value); 
+              break;
+            case NOTEMESSAGE:
+              sendnoteOff(controls[page].encswitch[i].channel, lastnotesent,0); // turn off the last note that was sent
+              break;
+            case SETENC:
+              controls[page].encoder[i].value=controls[page].encswitch[i].maxvalue; 
+              break;
+            default:
+              break;
+          }
+          lastcontrol=i;  // save index of the last used encoder or switch
           showswitchLED(page,lastcontrol);
           showswitch(page,lastcontrol);
           updatedisplay();    
@@ -684,7 +786,19 @@ void loop() {
         showencoderLEDs(page);
       }
 
-      if (lmenuenc.getButton() == ClickEncoder::Clicked) { // entering edit mode
+      button=lmenuenc.getButton();
+      if (button == ClickEncoder::DoubleClicked) { // left encoder double click shows switch states
+        if (!displaySwitchLEDs) for (int sw=0; sw<NUMENCODERS;sw++) {
+          showswitchLED(page,sw);
+          displaySwitchLEDs=1; // toggle display mode
+        }
+        else {
+          showencoderLEDs(page);
+          displaySwitchLEDs=0; // toggle display mode
+        }
+      }
+
+      if (button == ClickEncoder::Clicked) { // click to enter edit menu
         display.clearDisplay();
         topmenuindex=0;  // not using top menu, just submenus
         menustate=SUBSELECT; // do submenu when button is released
@@ -693,9 +807,11 @@ void loop() {
         drawsubmenus();
         drawselector(topmenu[topmenuindex].submenuindex);
         updatedisplay();
+        flush_encoders();   // toss any encoder messages
         UI_state=UI_EDIT;
       }
-      if (rmenuenc.getButton() == ClickEncoder::Clicked) { // entering save and restore mode
+
+      if (rmenuenc.getButton() == ClickEncoder::Clicked) { // click to enter save and restore menu
         display.clearDisplay();
         topmenuindex=1;  // not using top menu, just submenus
         menustate=SUBSELECT; // do submenu when button is released
@@ -704,15 +820,16 @@ void loop() {
         drawsubmenus();
         drawselector(topmenu[topmenuindex].submenuindex);
         updatedisplay();
+        flush_encoders();   // toss any encoder messages
         UI_state=UI_LOADSAVE;
       }
       break;
 
-    case UI_EDIT:  // handing edit menu state
+    case UI_EDIT:  // do edit menu 
       for (n=0; n< NUMENCODERS;++n) {   // see if a button is pressed
         if ((button=enc[n].getButton()) == ClickEncoder::Clicked) break;
       }
-      if ((n< NUMENCODERS) || ((t=lmenuenc.getValue()) !=0)) { // or we can scroll thru controls with encoder
+      if ((n< NUMENCODERS) || ((t=lmenuenc.getValue()) !=0)) { // button press or scroll thru controls with left encoder
         restore_from_editbuffer(page,lastcontrol); // copy edited values back to the encoder parameters
         showencoderLED(page,lastcontrol); // restore control color  
         if (n<NUMENCODERS) lastcontrol=n;    
@@ -722,7 +839,7 @@ void loop() {
         drawselector(topmenu[topmenuindex].submenuindex);
         updatedisplay();
       }
-      if (lmenuenc.getButton() == ClickEncoder::Clicked) { // click to exit menus
+      if (lmenuenc.getButton() == ClickEncoder::Clicked) { // click to exit menu
         display.clearDisplay();
         restore_from_editbuffer(page,lastcontrol); // copy edited values back to the encoder parameters
         showencoder(page,lastcontrol); // redraw the encoder display
@@ -738,7 +855,7 @@ void loop() {
           LEDtimer=millis();
           if (LEDstate) {
             LEDstate=0;
-            LEDS.setPixelColor(lastcontrol,colorpalette[editbuffer.encoder.color]); // flash LED in the current editing color at full brightness
+            LEDS.setPixelColor(lastcontrol,colorpalette[editbuffer.encoder.colorindex]); // flash LED in the current editing color at full brightness
           }
           else {
             LEDstate=1;
@@ -747,7 +864,7 @@ void loop() {
         }
       }
       break;
-    case UI_LOADSAVE:  // handing save/load menu state
+    case UI_LOADSAVE:  // save/load menu state
       if (lmenuenc.getButton() == ClickEncoder::Clicked) { // click to exit menus
         display.clearDisplay();
         showencoder(page,lastcontrol); // redraw the encoder display
@@ -765,5 +882,6 @@ void loop() {
 
  // Serial.printf("enc %d button %d\n",rmenuenc.getValue(),rmenuenc.getButton());
  // delay(100);
+  midi_ble.sendNow(); // send any BTLE pending notes 
   LEDS.show();
 }

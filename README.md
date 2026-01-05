@@ -6,6 +6,8 @@ It provides four pages of MIDI controls and fully customizable MIDI messages, en
 
 Twisty 2 is a completely open source project - source code, KICad schematics and layout, gerber files and enclosure 3D files are in this archive.
 
+Video Overview: https://youtu.be/-W1Gd_hKzS8
+
 ![](https://github.com/rheslip/Twisty-2-MIDIController/blob/main/images/IMG_0609.JPG)
 
 
