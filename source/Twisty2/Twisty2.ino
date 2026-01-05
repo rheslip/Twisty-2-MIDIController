@@ -880,8 +880,5 @@ void loop() {
       break;
   }  // end switch
 
- // Serial.printf("enc %d button %d\n",rmenuenc.getValue(),rmenuenc.getButton());
- // delay(100);
-  midi_ble.sendNow(); // send any BTLE pending notes 
   LEDS.show();
 }
