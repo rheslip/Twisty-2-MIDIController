@@ -137,7 +137,7 @@ The app was written in Arduino 2.3.7 with the Pico Arduino board support package
 
 If you want BLE MIDI, use a Pico W or Pico 2W and uncomment the #define BLUETOOTH directive near the top of the main source file.
 
-Note: I used the Control Surface library because it was the only one I could find that supports BLE MIDI for Arduino Pico. It will give you a "platform not supported" warning when you compile with Bluetooth support.
+Note: I used the Control Surface library because it was the only one I could find that supports BLE MIDI for Arduino Pico. It will give you a warning about supported platforms when you compile but the library does work on the RP2040 and RP2350.
 
 
 **Library Dependencies**
