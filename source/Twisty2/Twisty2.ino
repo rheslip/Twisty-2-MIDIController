@@ -39,17 +39,17 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include <Adafruit_TinyUSB.h>
+#include <Adafruit_TinyUSB.h>  
 #include <MIDI.h>
 #include "Clickencoder.h"
 //#include "StepSeq.h"
 #include <Adafruit_NeoPixel.h>
 #include <ArduinoJson.h>
 #include "LittleFS.h"
-
-#define BLUETOOTH  // define for bluetooth MIDI 
-#ifdef BLUETOOTH
 #include <Control_Surface.h>
+
+#define BLUETOOTH  // define for bluetooth MIDI - you MUST set up IPV4 + Bluetooth stack in the arduino Tools menu
+#ifdef BLUETOOTH
 #include <MIDI_Interfaces/BluetoothMIDI_Interface.hpp>
 #endif
 
@@ -652,7 +652,6 @@ void loop() {
   int16_t t,n;
 
   MIDI_Interface::updateAll(); // Update the Control Surface MIDI interfaces
-//  Control_Surface.loop(); // Update the Control Surface MIDI interfaces
 
   if ((millis()-displaytimer) > DISPLAY_BLANK_MS) blankdisplay(); // protect the OLED from burnin
 
