@@ -8,6 +8,8 @@ Twisty 2 is a completely open source project - source code, KICad schematics and
 
 Video Overview: https://youtu.be/-W1Gd_hKzS8
 
+Jan 13/2026 - switched MIDI interfaces so they all use the Control Surface library and cleaned up the MIDI interface names - BLE MIDI note on/off works now. Fixed a bug in the init code. 
+
 ![](https://github.com/rheslip/Twisty-2-MIDIController/blob/main/images/IMG_0609.JPG)
 
 
@@ -135,7 +137,7 @@ The app was written in Arduino 2.3.7 with the Pico Arduino board support package
 
 If you want BLE MIDI, use a Pico W or Pico 2W and uncomment the #define BLUETOOTH directive near the top of the main source file.
 
-Note: I used the Control Surface library because it was the only one I could find that supports BLE MIDI for Arduino Pico. It will give you a "platform not supported" warning when you compile with Bluetooth support. This library has a bug which messes up BLE MIDI Note On/Off messages so that code is commented out until I find a solution. Switch type Note works fine for USB or TRS MIDI.
+Note: I used the Control Surface library because it was the only one I could find that supports BLE MIDI for Arduino Pico. It will give you a "platform not supported" warning when you compile with Bluetooth support.
 
 
 **Library Dependencies**

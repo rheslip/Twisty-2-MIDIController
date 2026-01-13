@@ -143,18 +143,15 @@ ClickEncoder enc[NUMENCODERS] = {
 ClickEncoder lmenuenc(LMENU_ENCA_IN,LMENU_ENCB_IN,LMENU_ENCSW_IN,ENCDIVIDE); // left menu encoder object
 ClickEncoder rmenuenc(RMENU_ENCA_IN,RMENU_ENCB_IN,RMENU_ENCSW_IN,ENCDIVIDE); // right menu encoder object
 
+// use Control Surface MIDI
+USBMIDI_Interface usbMIDI;
+
+HardwareSerialMIDI_Interface serialMIDI {Serial1, MIDI_BAUD};
+
 #ifdef BLUETOOTH
 // Instantiate a MIDI over BLE interface
-BluetoothMIDI_Interface midi_ble;
+BluetoothMIDI_Interface bleMIDI;
 #endif
-
-// USB MIDI object
-Adafruit_USBD_MIDI usb_midi;
-// attach usb_midi as the transport.
-MIDI_CREATE_INSTANCE(Adafruit_USBD_MIDI, usb_midi, MidiUSB);
-
-// serial MIDI object
-MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, serialMIDI);
 
 #define BASE_CC 16  // lowest default CC number to use
 #define DEFAULT_VELOCITY 127
@@ -204,12 +201,12 @@ struct controller {
 
 // initialize all the controller settings
 void initcontrols(void) {
-  int16_t ccnumber=BASE_CC;
+  int16_t ccnum=BASE_CC;
   for (int16_t p=0;p<CONTROLLER_PAGES;++p) {
     for (int16_t i=0; i<NUMENCODERS;++i) {
       controls[p].encoder[i].type=CCTYPE;
       controls[p].encoder[i].channel=DEFAULT_ENCODER_CHANNEL;
-      controls[p].encoder[i].ccnumber=ccnumber;
+      controls[p].encoder[i].ccnumber=ccnum;
       controls[p].encoder[i].minvalue=0;
       controls[p].encoder[i].maxvalue=127;
       controls[p].encoder[i].value=64;
@@ -218,12 +215,13 @@ void initcontrols(void) {
       controls[p].encswitch[i].mode=TOGGLE;
       controls[p].encswitch[i].type=CCTYPE;
       controls[p].encswitch[i].channel=DEFAULT_SWITCH_CHANNEL;
-      controls[p].encswitch[i].ccnumber=ccnumber++;
+      controls[p].encswitch[i].ccnumber=ccnum;
       controls[p].encswitch[i].minvalue=0;
       controls[p].encswitch[i].maxvalue=127;
       controls[p].encswitch[i].value=0;
       controls[p].encswitch[i].colorindex=p;  // not used for now
       controls[p].encswitch[i].labelindex=0;  // label index 0 is "CC"
+      ++ccnum;
     }  
   }
 }
@@ -322,22 +320,20 @@ static void alarm_irq(void) {
  // midi related stuff
 
 void sendnoteOn(uint8_t channel,uint8_t pitch, uint8_t velocity) {
-  MidiUSB.sendNoteOn(pitch,velocity,channel);
-  serialMIDI.sendNoteOn(pitch,velocity,channel);
+  MIDIAddress midiaddress ={pitch,Channel_1 + (channel-1)}; // control surface library requires this form of MIDI addressing -I'm not a fan of the design but its the only Arduino BLE MIDI library I could find
+  usbMIDI.sendNoteOn(midiaddress, velocity);
+  serialMIDI.sendNoteOn(midiaddress, velocity);
 #ifdef BLUETOOTH
-// control surface library requires this form of MIDI addressing -I'm not a fan of the design but its the only Arduino BLE MIDI library I could find
-// **** control surface library bug **** won't send note on/off correctly. works if note is a constant, fails if it is a variable
-//  MIDIAddress midiaddress ={pitch,Channel_1 + (channel-1)};
-//  midi_ble.sendNoteOn(midiaddress, velocity);
+  bleMIDI.sendNoteOn(midiaddress, velocity);
 #endif
 }
 
 void sendnoteOff(uint8_t channel, uint8_t pitch,uint8_t velocity) {
-  MidiUSB.sendNoteOff(pitch,velocity,channel);
-  serialMIDI.sendNoteOff(pitch,velocity,channel);
+  MIDIAddress midiaddress= {pitch,Channel_1 + (channel-1)};
+  usbMIDI.sendNoteOff(midiaddress, velocity);
+  serialMIDI.sendNoteOff(midiaddress, velocity);
 #ifdef BLUETOOTH
-//  MIDIAddress midiaddress= {pitch,Channel_1 + (channel-1)};
-//  midi_ble.sendNoteOff(midiaddress, velocity);
+  bleMIDI.sendNoteOff(midiaddress, velocity);
 #endif
 }
 
@@ -346,11 +342,11 @@ void sendnoteOff(uint8_t channel, uint8_t pitch,uint8_t velocity) {
 // 3rd parameter is the control value (0-127).
 
 void sendcontrolChange(uint8_t channel, uint8_t control, uint8_t value) {
-  MidiUSB.sendControlChange(control,value,channel);
-  serialMIDI.sendControlChange(control,value,channel);
+  MIDIAddress midiaddress= {control,Channel_1 + (channel-1)};  
+  usbMIDI.sendControlChange(midiaddress, value); 
+  serialMIDI.sendControlChange(midiaddress, value); 
 #ifdef BLUETOOTH
-  MIDIAddress midiaddress= {control,Channel_1 + (channel-1)};  // confusing way of sending MIDI messages 
-  midi_ble.sendControlChange(midiaddress, value); 
+  bleMIDI.sendControlChange(midiaddress, value); 
 #endif
 }
 
@@ -358,11 +354,11 @@ void sendcontrolChange(uint8_t channel, uint8_t control, uint8_t value) {
 // 2nd parameter is the PC value (0-127).
 
 void sendprogramChange(uint8_t channel, uint8_t value) {
-  MidiUSB.sendProgramChange(value,channel);
-  serialMIDI.sendProgramChange(value,channel);
-#ifdef BLUETOOTH
   MIDIAddress midiaddress= {value,Channel_1 + (channel-1)};  // confusing way of sending MIDI messages
-  midi_ble.sendProgramChange(midiaddress); 
+  usbMIDI.sendProgramChange(midiaddress); 
+  serialMIDI.sendProgramChange(midiaddress); 
+#ifdef BLUETOOTH
+  bleMIDI.sendProgramChange(midiaddress); 
 #endif
 }
 
@@ -629,31 +625,15 @@ void setup() {
   showencoderLEDs(0); // show page 0 encoder LED colors
   LEDS.show();
 
- if (!LittleFS.begin()) fatalerror("Can't mount FS"); // start up filesystem
-
- serialMIDI.begin(MIDI_CHANNEL_OMNI);  // hardware serial port
-
-// Manual begin() is required on core without built-in support e.g. mbed rp2040
-  if (!TinyUSBDevice.isInitialized()) {
-    TinyUSBDevice.begin(0);
-  }
-  usb_midi.setStringDescriptor("Twisty 2 MIDI");
-  // Initialize USB MIDI, and listen to all MIDI channels
-  MidiUSB.begin(MIDI_CHANNEL_OMNI);
+  if (!LittleFS.begin()) fatalerror("Can't mount FS"); // start up filesystem
 
 #ifdef BLUETOOTH
-    // Change the name of the BLE device (must be done before initializing it)
-  midi_ble.setName("Twisty2");
-  // Initialize the BT MIDI interface
-  MIDI_Interface::beginAll();
+  bleMIDI.setName("Twisty 2");
 #endif
 
-  // If already enumerated, additional class driver begin() e.g msc, hid, midi won't take effect until re-enumeration
-  if (TinyUSBDevice.mounted()) {
-    TinyUSBDevice.detach();
-    delay(10);
-    TinyUSBDevice.attach();
-  }
+  MIDI_Interface::beginAll();
+
+//  Control_Surface.begin(); // Initialize the Control Surface MIDI interfaces
 
   display.clearDisplay();
   display.setTextSize(1);  
@@ -671,12 +651,8 @@ void loop() {
   ClickEncoder::ButtonEvent event;
   int16_t t,n;
 
-  // read any new MIDI messages
-  MidiUSB.read(); 
-
-#ifdef BLUETOOTH
-  midi_ble.update();  // Update the Control Surface for BLE MIDI
-#endif
+  MIDI_Interface::updateAll(); // Update the Control Surface MIDI interfaces
+//  Control_Surface.loop(); // Update the Control Surface MIDI interfaces
 
   if ((millis()-displaytimer) > DISPLAY_BLANK_MS) blankdisplay(); // protect the OLED from burnin
 
