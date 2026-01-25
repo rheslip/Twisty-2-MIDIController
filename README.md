@@ -10,6 +10,13 @@ Video Overview: https://youtu.be/-W1Gd_hKzS8
 
 Jan 13/2026 - switched MIDI interfaces so they all use the Control Surface library and cleaned up the MIDI interface names - BLE MIDI note on/off works now. Fixed a bug in the init code. 
 
+Jan 25/2026 - added code for a SubHamonicon like sequencer using the Twisty 2 hardware:
+
+https://www.youtube.com/watch?v=RM_LAcxyHQQ
+
+https://github.com/rheslip/Twisty-2-MIDIController/tree/main/source/Twisty2_Rhythmicon
+
+
 ![](https://github.com/rheslip/Twisty-2-MIDIController/blob/main/images/IMG_0609.JPG)
 
 
